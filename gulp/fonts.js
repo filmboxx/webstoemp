@@ -21,10 +21,10 @@ function copyFonts(done) {
   files.forEach(function(file) {
     let srcFile = file;
     let distFile = srcFile.replace(sourceDir, distDir);
-    let distDirName = path.dirname(distFile);
+    let distDirname = path.dirname(distFile);
 
-    if (!fs.existsSync(distDirName)) {
-      fs.mkdirSync(distDirName, { recursive: true });
+    if (!fs.existsSync(distDirname)) {
+      fs.mkdirSync(distDirname, { recursive: true });
     }
 
     if (!fs.existsSync(distFile)) {
