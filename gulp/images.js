@@ -3,14 +3,13 @@ const fs = require("fs");
 const glob = require("glob");
 const gulp = require("gulp");
 const imagemin = require("gulp-imagemin");
-const newer = require("gulp-newer");
 const path = require("path");
 const sharp = require("sharp");
 
 // specify transforms
 const transforms = [
   {
-    src: "./src/assets/img/blogposts/",
+    src: "./src/assets/img/blogposts/*",
     dist: "./dist/img/blogposts/_1024x576/",
     options: {
       width: 1024,
@@ -19,7 +18,7 @@ const transforms = [
     }
   },
   {
-    src: "./src/assets/img/blogposts/",
+    src: "./src/assets/img/blogposts/*",
     dist: "./dist/img/blogposts/_600x600/",
     options: {
       width: 600,
@@ -28,7 +27,7 @@ const transforms = [
     }
   },
   {
-    src: "./src/assets/img/projects/",
+    src: "./src/assets/img/projects/*",
     dist: "./dist/img/projects/_800x600/",
     options: {
       width: 800,
@@ -38,31 +37,8 @@ const transforms = [
   }
 ];
 
-// Check that directory exists (recursive)
-function dirExists(path) {
-  var dir = sanitizeDir(path);
-  if (fs.existsSync(dir)) {
-    return true;
-  }
-  return false;
-}
-
-// Make sure paths ends with a slash
-function sanitizeDir(path) {
-  let sanitizedPath = path.slice(-1) !== "/" ? `${path}/` : path;
-  return sanitizedPath;
-}
-
-// Copy Images
-function copy() {
-  return gulp
-    .src("./src/assets/img/**/*")
-    .pipe(newer("./dist/img/"))
-    .pipe(gulp.dest("./dist/img/"));
-}
-
 // Optimize images (src)
-function optimise() {
+function optimiseImages() {
   return gulp
     .src("./src/assets/img/**/*")
     .pipe(
@@ -84,14 +60,14 @@ function optimise() {
 }
 
 // resize images
-function resize(done) {
+function resizeImages(done) {
   transforms.forEach(function(transform) {
-    let distDir = sanitizeDir(transform.dist);
-    if (!dirExists(distDir)) {
+    let distDir = transform.dist;
+    if (!fs.existsSync(distDir)) {
       fs.mkdirSync(distDir, { recursive: true });
     }
 
-    let files = glob.sync(sanitizeDir(transform.src) + "*");
+    let files = glob.sync(transform.src);
 
     files.forEach(function(file) {
       let filename = path.basename(file);
@@ -106,9 +82,37 @@ function resize(done) {
   done();
 }
 
+// copy original images to dist
+function copyImages(done) {
+  // src and dist
+  let sourceDir = "./src/assets/img/";
+  let distDir = "./dist/img/";
+
+  // glob all files
+  let files = glob.sync(`${sourceDir}/**/*`, { nodir: true });
+
+  // copy each file to dist dir
+  files.forEach(function(file) {
+    let srcFile = file;
+    let distFile = srcFile.replace(sourceDir, distDir);
+    let distDirName = path.dirname(distFile);
+
+    if (!fs.existsSync(distDirName)) {
+      fs.mkdirSync(distDirName, { recursive: true });
+    }
+
+    if (!fs.existsSync(distFile)) {
+      fs.copyFile(srcFile, distFile, err => {
+        if (err) throw err;
+      });
+    }
+  });
+  done();
+}
+
 // exports (Common JS)
 module.exports = {
-  resize: resize,
-  optimise: optimise,
-  copy: copy
+  resize: resizeImages,
+  optimise: optimiseImages,
+  copy: copyImages
 };
